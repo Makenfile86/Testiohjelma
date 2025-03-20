@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Laskut</h1>
+        <p class="lead">Näytetään laskut: {{ client_name }}</p>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary me-md-2">Takaisin tietokantoihin</a>
+            <a href="{{ url_for('view_database', filename=filename) }}" class="btn btn-secondary me-md-2">Tietokannan tiedot</a>
+            <a href="{{ url_for('lasku.new_invoice', filename=filename) }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Uusi lasku
+            </a>
+        </div>
+        
+        <div class="alert alert-info mb-4">
+            <h5><i class="bi bi-info-circle"></i> Laskujen käsittely</h5>
+            <p class="mb-0">
+                Kaikki laskut luodaan aluksi <span class="badge bg-warning">Luonnos</span> -tilassa. 
+                Lähetä asiakkaalle laskun tuloste painamalla "Tulosta" -nappia. Kun asiakas on maksanut laskun,
+                merkitse se maksetuksi "Merkitse maksetuksi" -toiminnolla.
+            </p>
+        </div>
+        
+        {% if invoices %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Kaikki laskut</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Numero</th>
+                                <th>Päivämäärä</th>
+                                <th>Asiakas</th>
+                                <th>Kuvaus</th>
+                                <th>Eräpäivä</th>
+                                <th>Summa</th>
+                                <th>Tila</th>
+                                <th>Toiminnot</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in invoices %}
+                                <tr>
+                                    <td>{{ invoice.number }}</td>
+                                    <td>{{ invoice.pvm }}</td>
+                                    <td>{{ invoice.kumppani }}</td>
+                                    <td>{{ invoice.otsikko }}</td>
+                                    <td>{{ invoice.erapvm or "Ei asetettu" }}</td>
+                                    <td>{{ invoice.summa }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'warning' if invoice.tila == 'Luonnos' 
+                                                            else 'primary' if invoice.tila == 'Avoin' 
+                                                            else 'danger' if invoice.tila == 'Erääntynyt' 
+                                                            else 'info' if invoice.tila == 'Osittain maksettu' 
+                                                            else 'success' if invoice.tila == 'Maksettu' 
+                                                            else 'secondary' }}">
+                                            {{ invoice.tila }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('lasku.view_invoice', filename=filename, invoice_id=invoice.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i> Näytä
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            Tietokannasta ei löytynyt laskuja. Klikkaa "Uusi lasku" luodaksesi uuden.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

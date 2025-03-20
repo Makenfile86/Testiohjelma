@@ -631,5 +631,9 @@ tilinavaus.register_blueprint(app)
 import asetukset
 asetukset.register_blueprint(app)
 
+# Import and register the laskut blueprint
+import laskut
+laskut.register_blueprint(app)
+
 if __name__ == '__main__':
     app.run(debug=True)

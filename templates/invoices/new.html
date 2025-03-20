@@ -1,0 +1,280 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Uusi lasku</h1>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
+            <a href="{{ url_for('lasku.list_invoices', filename=filename) }}" class="btn btn-secondary me-md-2">Takaisin laskuihin</a>
+        </div>
+        
+        <form method="post" enctype="multipart/form-data">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Laskun perustiedot</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="kumppani" class="form-label">Asiakas *</label>
+                                <select class="form-select" id="kumppani" name="kumppani" required>
+                                    <option value="">Valitse asiakas</option>
+                                    {% for partner in partners %}
+                                        <option value="{{ partner.id }}">{{ partner.nimi }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Valitse laskun asiakas</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="pvm" class="form-label">Laskun päivämäärä</label>
+                                <input type="date" class="form-control" id="pvm" name="pvm" value="{{ today }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="erapvm" class="form-label">Eräpäivä</label>
+                                <input type="date" class="form-control" id="erapvm" name="erapvm">
+                                <div class="form-text">Jätä tyhjäksi käyttääksesi maksuehtoa</div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="otsikko" class="form-label">Laskun otsikko</label>
+                                <input type="text" class="form-control" id="otsikko" name="otsikko" placeholder="Esim. Konsultointipalvelut, tammikuu 2023">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="viite" class="form-label">Viitenumero</label>
+                                <input type="text" class="form-control" id="viite" name="viite">
+                                <div class="form-text">Jos tyhjä, käytetään laskun numeroa</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="maksuehto" class="form-label">Maksuehto</label>
+                                <input type="text" class="form-control" id="maksuehto" name="maksuehto" value="14 päivää">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="maksutapa" class="form-label">Maksutapa</label>
+                                <select class="form-select" id="maksutapa" name="maksutapa">
+                                    {% for id, name in payment_methods.items() %}
+                                        <option value="{{ id }}">{{ name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tila" class="form-label">Laskun tila</label>
+                        <select class="form-select" id="tila" name="tila">
+                            {% for id, status in invoice_statuses.items() %}
+                                <option value="{{ id }}" {% if id == 0 %}selected{% endif %}>{{ status }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Laskurivit</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="invoice-items-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">Tuote/Palvelu</th>
+                                    <th>Määrä</th>
+                                    <th>Á-hinta</th>
+                                    <th>Alennus %</th>
+                                    <th>ALV %</th>
+                                    <th>Tili</th>
+                                    <th>Kohdennus</th>
+                                    <th>Toiminnot</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr id="row_0">
+                                    <td>
+                                        <input type="text" class="form-control" name="tuote_0" placeholder="Tuote tai palvelu">
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control" name="maara_0" value="1" min="0" step="0.01">
+                                    </td>
+                                    <td>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" name="hinta_0" value="0" min="0" step="0.01">
+                                            <span class="input-group-text">€</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" name="alennus_0" value="0" min="0" max="100">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" name="alv_percent_0" value="24" min="0" max="100">
+                                            <span class="input-group-text">%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <select class="form-select" name="tili_0">
+                                            {% for account in default_accounts %}
+                                                <option value="{{ account.numero }}">{{ account.numero }} - {{ account.nimi }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select" name="kohdennus_0">
+                                            <option value="">Ei kohdennusta</option>
+                                            {% for allocation in allocations %}
+                                                <option value="{{ allocation.id }}">{{ allocation.nimi }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <button type="button" class="btn btn-sm btn-success mt-2" onclick="addRow()">
+                            <i class="bi bi-plus-circle"></i> Lisää rivi
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Lisätiedot ja liitteet</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="comments" class="form-label">Kommentit</label>
+                        <textarea class="form-control" id="comments" name="comments" rows="3"></textarea>
+                        <div class="form-text">Sisäiset kommentit (näkyvät vain kirjanpidossa)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="attachment" class="form-label">Liitteet</label>
+                        <input type="file" class="form-control" id="attachment" name="attachment" multiple>
+                        <div class="form-text">Voit lisätä useita liitteitä (PDF, kuva, Excel, Word). Max 10MB / tiedosto.</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
+                <button type="reset" class="btn btn-outline-secondary me-md-2">Tyhjennä</button>
+                <button type="submit" class="btn btn-primary">Tallenna lasku</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let rowCount = 1;
+    
+    function addRow() {
+        const table = document.getElementById('invoice-items-table').getElementsByTagName('tbody')[0];
+        const newRow = table.insertRow();
+        newRow.id = 'row_' + rowCount;
+        
+        newRow.innerHTML = `
+            <td>
+                <input type="text" class="form-control" name="tuote_${rowCount}" placeholder="Tuote tai palvelu">
+            </td>
+            <td>
+                <input type="number" class="form-control" name="maara_${rowCount}" value="1" min="0" step="0.01">
+            </td>
+            <td>
+                <div class="input-group">
+                    <input type="number" class="form-control" name="hinta_${rowCount}" value="0" min="0" step="0.01">
+                    <span class="input-group-text">€</span>
+                </div>
+            </td>
+            <td>
+                <div class="input-group">
+                    <input type="number" class="form-control" name="alennus_${rowCount}" value="0" min="0" max="100">
+                    <span class="input-group-text">%</span>
+                </div>
+            </td>
+            <td>
+                <div class="input-group">
+                    <input type="number" class="form-control" name="alv_percent_${rowCount}" value="24" min="0" max="100">
+                    <span class="input-group-text">%</span>
+                </div>
+            </td>
+            <td>
+                <select class="form-select" name="tili_${rowCount}">
+                    {% for account in default_accounts %}
+                        <option value="{{ account.numero }}">{{ account.numero }} - {{ account.nimi }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td>
+                <select class="form-select" name="kohdennus_${rowCount}">
+                    <option value="">Ei kohdennusta</option>
+                    {% for allocation in allocations %}
+                        <option value="{{ allocation.id }}">{{ allocation.nimi }}</option>
+                    {% endfor %}
+                </select>
+            </td>
+            <td>
+                <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+        
+        rowCount++;
+    }
+    
+    function removeRow(button) {
+        const row = button.closest('tr');
+        row.parentNode.removeChild(row);
+    }
+    
+    // Auto-calculate due date based on payment terms
+    document.getElementById('maksuehto').addEventListener('change', function() {
+        const paymentTerms = this.value;
+        const invoiceDate = document.getElementById('pvm').value;
+        
+        if (invoiceDate && paymentTerms) {
+            try {
+                // Extract days from payment terms (assumes format like "14 päivää")
+                const days = parseInt(paymentTerms.split(' ')[0]);
+                
+                if (!isNaN(days)) {
+                    const date = new Date(invoiceDate);
+                    date.setDate(date.getDate() + days);
+                    
+                    // Format date as YYYY-MM-DD
+                    const dueDate = date.toISOString().split('T')[0];
+                    document.getElementById('erapvm').value = dueDate;
+                }
+            } catch (e) {
+                console.error('Error calculating due date:', e);
+            }
+        }
+    });
+    
+    document.getElementById('pvm').addEventListener('change', function() {
+        // Trigger the payment terms change event to recalculate due date
+        const event = new Event('change');
+        document.getElementById('maksuehto').dispatchEvent(event);
+    });
+</script>
+{% endblock %} 

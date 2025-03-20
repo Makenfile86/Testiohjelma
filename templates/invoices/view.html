@@ -1,0 +1,290 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Lasku #{{ invoice_number }}</h1>
+        <p class="lead">{{ invoice.otsikko }}</p>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
+            <a href="{{ url_for('lasku.list_invoices', filename=filename) }}" class="btn btn-secondary me-md-2">Takaisin laskuihin</a>
+            <a href="{{ url_for('lasku.print_invoice', filename=filename, invoice_id=invoice.id) }}" class="btn btn-primary me-md-2" target="_blank">
+                <i class="bi bi-printer"></i> Tulosta lasku
+            </a>
+            {% if invoice.tila != 4 %} {# Not paid #}
+            <button type="button" class="btn btn-success me-md-2" data-bs-toggle="modal" data-bs-target="#markPaidModal">
+                <i class="bi bi-check-circle"></i> Merkitse maksetuksi
+            </button>
+            {% endif %}
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                <i class="bi bi-trash"></i> Poista lasku
+            </button>
+        </div>
+        
+        <!-- Status indicator -->
+        <div class="alert alert-{{ 'warning' if invoice.tila == 0 
+                           else 'primary' if invoice.tila == 1
+                           else 'danger' if invoice.tila == 2
+                           else 'info' if invoice.tila == 3
+                           else 'success' if invoice.tila == 4
+                           else 'secondary' }} mb-4">
+            <h5>Tila: {{ status }}</h5>
+            {% if invoice.tila == 4 and json_data.get('payment_date') %}
+            <p class="mb-0">Maksettu: {{ json_data.get('payment_date') }}</p>
+            {% elif invoice.tila != 4 and invoice.erapvm %}
+            <p class="mb-0">Eräpäivä: {{ invoice.erapvm }}</p>
+            {% endif %}
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Laskun tiedot</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th>Laskun numero</th>
+                                    <td>{{ invoice_number }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Päivämäärä</th>
+                                    <td>{{ invoice.pvm }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Eräpäivä</th>
+                                    <td>{{ invoice.erapvm or "Ei asetettu" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Viitenumero</th>
+                                    <td>{{ invoice.viite or json_data.get('viitenumero', 'Ei asetettu') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Maksuehto</th>
+                                    <td>{{ json_data.get('maksuehto', '14 päivää') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Maksutapa</th>
+                                    <td>{{ payment_method }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Asiakas</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if partner %}
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th>Nimi</th>
+                                    <td>{{ partner.nimi }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Y-tunnus</th>
+                                    <td>{{ partner.alvtunnus or 'Ei asetettu' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Osoite</th>
+                                    <td>
+                                        {{ partner_json.get('osoite', '') }}<br>
+                                        {{ partner_json.get('postinumero', '') }} {{ partner_json.get('kaupunki', '') }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Sähköposti</th>
+                                    <td>{{ partner_json.get('email', 'Ei asetettu') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Puhelin</th>
+                                    <td>{{ partner_json.get('puhelin', 'Ei asetettu') }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <div class="alert alert-warning">
+                            Asiakastietoja ei löydy.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Invoice lines -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Laskurivit</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Kuvaus</th>
+                                <th>ALV %</th>
+                                <th class="text-end">Summa (alv 0%)</th>
+                                <th class="text-end">ALV</th>
+                                <th class="text-end">Yhteensä</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in invoice_lines %}
+                            <tr>
+                                <td>{{ line.selite }}</td>
+                                <td>{{ line.alv }}%</td>
+                                <td class="text-end">{{ "%.2f"|format(line.summa) }} €</td>
+                                <td class="text-end">{{ "%.2f"|format(line.summa * (line.alv / 100)) }} €</td>
+                                <td class="text-end">{{ "%.2f"|format(line.summa * (1 + line.alv / 100)) }} €</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-active">
+                                <th colspan="2">Yhteensä</th>
+                                <th class="text-end">{{ "%.2f"|format(total_amount) }} €</th>
+                                <th class="text-end">{{ "%.2f"|format(total_vat) }} €</th>
+                                <th class="text-end">{{ "%.2f"|format(total_with_vat) }} €</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Attachments -->
+        {% if attachments %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Liitteet</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for attachment in attachments %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ attachment.nimi }}
+                        <span>
+                            <a href="{{ url_for('lasku.view_attachment', filename=filename, invoice_id=invoice.id, attachment_id=attachment.id) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                <i class="bi bi-eye"></i> Näytä
+                            </a>
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Accounting transactions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Kirjanpitoviennit</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Tili</th>
+                                <th>Selite</th>
+                                <th>ALV %</th>
+                                <th class="text-end">Debet</th>
+                                <th class="text-end">Kredit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions %}
+                            <tr>
+                                <td>{{ transaction.tili }} - {{ transaction.tili_nimi }}</td>
+                                <td>{{ transaction.selite }}</td>
+                                <td>{{ transaction.alv_percent or '-' }}</td>
+                                <td class="text-end">{{ "%.2f"|format(transaction.debit) if transaction.debit else '-' }}</td>
+                                <td class="text-end">{{ "%.2f"|format(transaction.credit) if transaction.credit else '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        {% if json_data.get('kommentti') %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Kommentit</h5>
+            </div>
+            <div class="card-body">
+                <p>{{ json_data.get('kommentti') }}</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Poista lasku</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Haluatko varmasti poistaa tämän laskun? Tätä toimenpidettä ei voi kumota.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Peruuta</button>
+                <form action="{{ url_for('lasku.delete_invoice', filename=filename, invoice_id=invoice.id) }}" method="post">
+                    <button type="submit" class="btn btn-danger">Poista lasku</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mark Paid Modal -->
+<div class="modal fade" id="markPaidModal" tabindex="-1" aria-labelledby="markPaidModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="markPaidModalLabel">Merkitse lasku maksetuksi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('lasku.mark_invoice_paid', filename=filename, invoice_id=invoice.id) }}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="payment_date" class="form-label">Maksupäivä</label>
+                        <input type="date" class="form-control" id="payment_date" name="payment_date" value="{{ invoice.erapvm or invoice.pvm }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="payment_amount" class="form-label">Maksettu summa</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="payment_amount" name="payment_amount" 
+                                    value="{{ total_with_vat }}" step="0.01">
+                            <span class="input-group-text">€</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="payment_account" class="form-label">Maksutili</label>
+                        <select class="form-select" id="payment_account" name="payment_account">
+                            <option value="1910">1910 - Pankkitili</option>
+                            <option value="1900">1900 - Kassa</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Peruuta</button>
+                    <button type="submit" class="btn btn-success">Merkitse maksetuksi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 
