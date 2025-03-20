@@ -1,0 +1,238 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Opening Account Balances</h1>
+        <p class="lead">Set the initial balances for {{ client_name }}</p>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary me-md-2">Back to Databases</a>
+            <a href="{{ url_for('view_database', filename=filename) }}" class="btn btn-secondary me-md-2">Database Details</a>
+            <a href="{{ url_for('tili.list_balances', filename=filename) }}" class="btn btn-secondary me-md-2">Account Balances</a>
+        </div>
+        
+        {% if opening_balance_exists %}
+        <div class="alert alert-info">
+            <strong>Note:</strong> There is an existing opening balance entry. Submitting this form will replace the existing opening balances.
+        </div>
+        {% endif %}
+        
+        <form method="post" id="openingBalanceForm" class="needs-validation" novalidate>
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>Opening Balance Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="date" class="form-label">Balance Date*</label>
+                            <input type="date" class="form-control" id="date" name="date" value="{{ opening_balance_date }}" required>
+                            <div class="form-text">The date these opening balances are effective from.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Instructions -->
+            <div class="alert alert-primary">
+                <h5>Instructions:</h5>
+                <ul>
+                    <li>Enter either a debit or credit balance for each account (not both)</li>
+                    <li>Normal balances for account types:
+                        <ul>
+                            <li>Assets: Debit</li>
+                            <li>Liabilities: Credit</li>
+                            <li>Equity: Credit</li>
+                            <li>Income: Credit</li>
+                            <li>Expenses: Debit</li>
+                        </ul>
+                    </li>
+                    <li>Total debits must equal total credits for double-entry accounting</li>
+                    <li>Enter only the accounts you're using - leave others blank</li>
+                </ul>
+            </div>
+            
+            <!-- Accounts by type -->
+            {% for type_code, type_info in grouped_accounts.items() %}
+                {% if type_info.accounts %}
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h5>{{ type_info.name }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 15%;">Account Number</th>
+                                        <th style="width: 40%;">Account Name</th>
+                                        <th style="width: 20%;">Debit</th>
+                                        <th style="width: 20%;">Credit</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for account in type_info.accounts %}
+                                        <tr>
+                                            <td>{{ account.numero }}</td>
+                                            <td>{{ account.nimi }}</td>
+                                            <td>
+                                                <input type="number" 
+                                                       step="0.01" 
+                                                       min="0"
+                                                       class="form-control form-control-sm debit-input" 
+                                                       id="debit_{{ account.numero }}" 
+                                                       name="debit_{{ account.numero }}"
+                                                       value="{{ account.debit if account.debit > 0 else '' }}">
+                                            </td>
+                                            <td>
+                                                <input type="number" 
+                                                       step="0.01" 
+                                                       min="0"
+                                                       class="form-control form-control-sm credit-input" 
+                                                       id="credit_{{ account.numero }}" 
+                                                       name="credit_{{ account.numero }}"
+                                                       value="{{ account.credit if account.credit > 0 else '' }}">
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+            
+            <!-- Totals and submit -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Balance Totals</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="text-end">Total Debits: €<span id="debit-total">0.00</span></h5>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-end">Total Credits: €<span id="credit-total">0.00</span></h5>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <div id="balance-indicator" class="alert alert-warning text-center">
+                                <strong>Debits and credits must be equal</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{{ url_for('tili.list_balances', filename=filename) }}" class="btn btn-secondary me-md-2">Cancel</a>
+                <button type="submit" class="btn btn-primary" id="submitBtn">Save Opening Balances</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Function to update totals and balance status
+        function updateTotals() {
+            let totalDebit = 0;
+            let totalCredit = 0;
+            
+            // Calculate total debits
+            document.querySelectorAll('.debit-input').forEach(input => {
+                const value = parseFloat(input.value) || 0;
+                totalDebit += value;
+            });
+            
+            // Calculate total credits
+            document.querySelectorAll('.credit-input').forEach(input => {
+                const value = parseFloat(input.value) || 0;
+                totalCredit += value;
+            });
+            
+            // Update totals display
+            document.getElementById('debit-total').textContent = totalDebit.toFixed(2);
+            document.getElementById('credit-total').textContent = totalCredit.toFixed(2);
+            
+            // Update balance indicator
+            const balanceIndicator = document.getElementById('balance-indicator');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (Math.abs(totalDebit - totalCredit) < 0.01) {
+                balanceIndicator.className = 'alert alert-success text-center';
+                balanceIndicator.innerHTML = '<strong>Balanced ✓</strong>';
+                submitBtn.disabled = false;
+            } else {
+                balanceIndicator.className = 'alert alert-warning text-center';
+                balanceIndicator.innerHTML = '<strong>Debits and credits must be equal</strong><br>' + 
+                                           `Difference: €${Math.abs(totalDebit - totalCredit).toFixed(2)}`;
+                submitBtn.disabled = true;
+            }
+        }
+        
+        // Ensure inputs aren't filled with both debit and credit
+        function setupInputHandlers() {
+            // For debit inputs
+            document.querySelectorAll('.debit-input').forEach(input => {
+                input.addEventListener('input', function() {
+                    // If debit has a value, clear the corresponding credit
+                    if (this.value.trim() !== '') {
+                        const creditInput = document.getElementById('credit_' + this.id.split('_')[1]);
+                        if (creditInput) {
+                            creditInput.value = '';
+                        }
+                    }
+                    
+                    updateTotals();
+                });
+            });
+            
+            // For credit inputs
+            document.querySelectorAll('.credit-input').forEach(input => {
+                input.addEventListener('input', function() {
+                    // If credit has a value, clear the corresponding debit
+                    if (this.value.trim() !== '') {
+                        const debitInput = document.getElementById('debit_' + this.id.split('_')[1]);
+                        if (debitInput) {
+                            debitInput.value = '';
+                        }
+                    }
+                    
+                    updateTotals();
+                });
+            });
+        }
+        
+        // Form validation
+        const form = document.getElementById('openingBalanceForm');
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            // Check if debits and credits are balanced
+            const debitTotal = parseFloat(document.getElementById('debit-total').textContent);
+            const creditTotal = parseFloat(document.getElementById('credit-total').textContent);
+            
+            if (Math.abs(debitTotal - creditTotal) >= 0.01) {
+                event.preventDefault();
+                alert('Opening balances must be balanced. Total debits must equal total credits.');
+            }
+            
+            form.classList.add('was-validated');
+        });
+        
+        // Initialize
+        setupInputHandlers();
+        updateTotals();
+    });
+</script>
+{% endblock %} 

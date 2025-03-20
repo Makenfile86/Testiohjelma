@@ -1,0 +1,94 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>New Account</h1>
+        <p class="lead">Create a new account in the chart of accounts</p>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary me-md-2">Back to Databases</a>
+            <a href="{{ url_for('asetukset.chart_of_accounts', filename=filename) }}" class="btn btn-secondary me-md-2">Back to Chart of Accounts</a>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Account Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" class="needs-validation" novalidate>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="number" class="form-label">Account Number*</label>
+                            <input type="number" class="form-control" id="number" name="number" value="{{ next_account }}" required>
+                            <div class="form-text">Unique identifier for this account.</div>
+                            <div class="invalid-feedback">
+                                Please provide an account number.
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="name" class="form-label">Account Name*</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                            <div class="invalid-feedback">
+                                Please provide an account name.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="type" class="form-label">Account Type*</label>
+                            <select class="form-select" id="type" name="type" required>
+                                <option value="">-- Select Type --</option>
+                                {% for code, name in account_types.items() %}
+                                    <option value="{{ code }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select an account type.
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="vat_percent" class="form-label">VAT %</label>
+                            <input type="number" step="0.1" min="0" max="100" class="form-control" id="vat_percent" name="vat_percent">
+                            <div class="form-text">VAT percentage for this account.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="vat_code" class="form-label">VAT Code</label>
+                            <select class="form-select" id="vat_code" name="vat_code">
+                                <option value="">-- No VAT Code --</option>
+                                {% for code, name in vat_codes.items() %}
+                                    <option value="{{ code }}">{{ code }} - {{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">VAT handling for this account.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('asetukset.chart_of_accounts', filename=filename) }}" class="btn btn-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Create Account</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form validation
+        const form = document.querySelector('.needs-validation');
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            form.classList.add('was-validated');
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,192 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Tosite #{{ voucher.id }}</h1>
+        <p class="lead">{{ voucher_type }} - {{ voucher.otsikko }}</p>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
+            <a href="{{ url_for('tosite.list_vouchers', filename=filename) }}" class="btn btn-secondary me-md-2">Takaisin tositteisiin</a>
+            {% if voucher.tila == 0 %}
+            <form action="{{ url_for('tosite.confirm_voucher', filename=filename, voucher_id=voucher.id) }}" method="post" class="d-inline me-md-2">
+                <button type="submit" class="btn btn-success" {% if not is_balanced %}disabled{% endif %}>
+                    <i class="bi bi-check-circle"></i> Vahvista tosite
+                </button>
+            </form>
+            {% endif %}
+            <form action="{{ url_for('tosite.delete_voucher', filename=filename, voucher_id=voucher.id) }}" method="post" onsubmit="return confirm('Oletko varma, että haluat poistaa tämän tositteen?');" class="d-inline">
+                <button type="submit" class="btn btn-danger">Poista tosite</button>
+            </form>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Tositteen tiedot</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th>Tositenumero</th>
+                                    <td>{{ voucher.id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Päivämäärä</th>
+                                    <td>{{ voucher.pvm }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Tyyppi</th>
+                                    <td>{{ voucher_type }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Tila</th>
+                                    <td>
+                                        <span class="badge bg-{{ 'warning' if status == 'Luonnos' else 'success' if status == 'Valmis' else 'primary' if status == 'Kirjattu' else 'secondary' if status == 'Arkistoitu' else 'info' }}">
+                                            {{ status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Otsikko</th>
+                                    <td>{{ voucher.otsikko }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table">
+                            <tbody>
+                                {% if partner %}
+                                <tr>
+                                    <th>Kumppani</th>
+                                    <td>{{ partner.nimi }}</td>
+                                </tr>
+                                {% endif %}
+                                
+                                {% if voucher.laskupvm %}
+                                <tr>
+                                    <th>Laskun päivämäärä</th>
+                                    <td>{{ voucher.laskupvm }}</td>
+                                </tr>
+                                {% endif %}
+                                
+                                {% if voucher.erapvm %}
+                                <tr>
+                                    <th>Eräpäivä</th>
+                                    <td>{{ voucher.erapvm }}</td>
+                                </tr>
+                                {% endif %}
+                                
+                                {% if voucher.viite %}
+                                <tr>
+                                    <th>Viite</th>
+                                    <td>{{ voucher.viite }}</td>
+                                </tr>
+                                {% endif %}
+                                
+                                {% if json_data.kommentti %}
+                                <tr>
+                                    <th>Kommentit</th>
+                                    <td>{{ json_data.kommentti }}</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        {% if attachments %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Liitteet</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for attachment in attachments %}
+                    <div class="col-md-3 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title text-truncate">{{ attachment.nimi }}</h5>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        {% if 'image' in attachment.tyyppi %}
+                                        <i class="bi bi-file-image"></i> Kuva
+                                        {% elif attachment.tyyppi == 'application/pdf' %}
+                                        <i class="bi bi-file-pdf"></i> PDF
+                                        {% elif 'spreadsheet' in attachment.tyyppi or 'csv' in attachment.tyyppi %}
+                                        <i class="bi bi-file-spreadsheet"></i> Taulukko
+                                        {% elif 'word' in attachment.tyyppi or 'document' in attachment.tyyppi %}
+                                        <i class="bi bi-file-word"></i> Dokumentti
+                                        {% else %}
+                                        <i class="bi bi-file-earmark"></i> Tiedosto
+                                        {% endif %}
+                                    </small>
+                                </p>
+                                <a href="{{ url_for('tosite.view_attachment', filename=filename, voucher_id=voucher.id, attachment_id=attachment.id) }}" 
+                                   class="btn btn-primary btn-sm" target="_blank">
+                                    <i class="bi bi-eye"></i> Näytä
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Viennit</h5>
+                <span class="badge {{ 'bg-success' if is_balanced else 'bg-danger' }}">
+                    {{ 'Tasapainossa' if is_balanced else 'Ei tasapainossa' }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Tili</th>
+                                <th>Selite</th>
+                                <th>Kohdennus</th>
+                                <th>ALV</th>
+                                <th class="text-end">Debet</th>
+                                <th class="text-end">Kredit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions %}
+                                <tr>
+                                    <td>{{ transaction.tili }} - {{ transaction.tili_nimi }}</td>
+                                    <td>{{ transaction.selite }}</td>
+                                    <td>{{ transaction.kohdennus_nimi }}</td>
+                                    <td>
+                                        {% if transaction.alv_koodi %}
+                                            {{ transaction.alv_prosentti }}% ({{ transaction.alv_koodi_nimi }})
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">{{ transaction.debit }}</td>
+                                    <td class="text-end">{{ transaction.credit }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold">
+                                <td colspan="4" class="text-end">Yhteensä:</td>
+                                <td class="text-end">{{ total_debit }}</td>
+                                <td class="text-end">{{ total_credit }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

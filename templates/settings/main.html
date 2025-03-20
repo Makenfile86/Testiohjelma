@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Asetukset</h1>
+        <p class="lead">Hallinnoi asetuksia: {{ client_name }}</p>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary me-md-2">Takaisin tietokantoihin</a>
+            <a href="{{ url_for('view_database', filename=filename) }}" class="btn btn-secondary me-md-2">Tietokannan tiedot</a>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Tililuettelo</h5>
+                        <p class="card-text">Tarkastele ja hallinnoi tililuetteloasi</p>
+                        <a href="{{ url_for('asetukset.chart_of_accounts', filename=filename) }}" class="btn btn-primary">
+                            <i class="bi bi-list-ol"></i> Hallinnoi tilejä
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Kumppanit</h5>
+                        <p class="card-text">Hallinnoi asiakkaita, toimittajia ja muita kumppaneita</p>
+                        <a href="#" class="btn btn-primary">
+                            <i class="bi bi-people"></i> Hallinnoi kumppaneita
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Yrityksen tiedot</h5>
+                        <p class="card-text">Päivitä yrityksesi tietoja ja asetuksia</p>
+                        <a href="#" class="btn btn-primary">
+                            <i class="bi bi-building"></i> Yrityksen tiedot
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

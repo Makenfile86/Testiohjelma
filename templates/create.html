@@ -1,0 +1,196 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Create New Accounting Database</h1>
+        <p class="lead">Enter client information to create a new accounting database.</p>
+        
+        <form method="post" class="needs-validation" novalidate>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Basic Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="name" class="form-label">Company/Organization Name*</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                            <div class="invalid-feedback">
+                                Please provide a company name.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="business_id" class="form-label">Business ID</label>
+                            <input type="text" class="form-control" id="business_id" name="business_id">
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="company_form" class="form-label">Yritysmuoto (Company Form)</label>
+                            <select class="form-select" id="company_form" name="company_form">
+                                <option value="">Select company form</option>
+                                <option value="oy">Osakeyhtiö</option>
+                                <option value="oyj">Julkinen osakeyhtiö</option>
+                                <option value="tmi">Toiminimi</option>
+                                <option value="ay">Avoin yhtiö</option>
+                                <option value="ky">Kommandiittiyhtiö</option>
+                                <option value="osk">Osuuskunta</option>
+                                <option value="yhdistys">Yhdistys</option>
+                                <option value="saatio">Säätiö</option>
+                                <option value="muu">Muu</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="chart_scope" class="form-label">Tilikartan laajuus (Chart of Accounts Scope)</label>
+                            <select class="form-select" id="chart_scope" name="chart_scope">
+                                <option value="basic">Perus (Basic)</option>
+                                <option value="standard">Normaali (Standard)</option>
+                                <option value="extended">Laaja (Extended)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="street_address" class="form-label">Street Address</label>
+                            <textarea class="form-control" id="street_address" name="street_address" rows="2"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="postal_code" class="form-label">Postal Code</label>
+                            <input type="text" class="form-control" id="postal_code" name="postal_code">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="city" class="form-label">City</label>
+                            <input type="text" class="form-control" id="city" name="city">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="domicile" class="form-label">Domicile</label>
+                            <input type="text" class="form-control" id="domicile" name="domicile">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Contact Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="phone" class="form-label">Phone</label>
+                            <input type="text" class="form-control" id="phone" name="phone">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="website" class="form-label">Website</label>
+                            <input type="url" class="form-control" id="website" name="website">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Banking & Tax Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="iban" class="form-label">Bank Account (IBAN)</label>
+                            <input type="text" class="form-control" id="iban" name="iban">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">VAT Registered</label>
+                            <div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="vat_registered" id="vat_yes" value="yes">
+                                    <label class="form-check-label" for="vat_yes">Yes</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="vat_registered" id="vat_no" value="no" checked>
+                                    <label class="form-check-label" for="vat_no">No</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Fiscal Period</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="setup_fiscal" name="setup_fiscal" value="yes">
+                        <label class="form-check-label" for="setup_fiscal">
+                            Set up fiscal period now
+                        </label>
+                    </div>
+                    
+                    <div id="fiscal_details" style="display: none;">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="fiscal_name" class="form-label">Fiscal Period Name</label>
+                                <input type="text" class="form-control" id="fiscal_name" name="fiscal_name" placeholder="e.g., 2023">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="fiscal_start" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="fiscal_start" name="fiscal_start">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="fiscal_end" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="fiscal_end" name="fiscal_end">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{{ url_for('index') }}" class="btn btn-secondary me-md-2">Cancel</a>
+                <button type="submit" class="btn btn-primary">Create Database</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Show/hide fiscal period details based on checkbox
+    document.getElementById('setup_fiscal').addEventListener('change', function() {
+        document.getElementById('fiscal_details').style.display = this.checked ? 'block' : 'none';
+    });
+    
+    // Form validation
+    (function () {
+        'use strict'
+        
+        // Fetch all forms we want to apply validation to
+        var forms = document.querySelectorAll('.needs-validation')
+        
+        // Loop over them and prevent submission
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })()
+</script>
+{% endblock %} 

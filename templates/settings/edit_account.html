@@ -1,0 +1,73 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Edit Account</h1>
+        <p class="lead">Edit account information for {{ account.numero }} - {{ account.nimi }}</p>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary me-md-2">Back to Databases</a>
+            <a href="{{ url_for('asetukset.chart_of_accounts', filename=filename) }}" class="btn btn-secondary me-md-2">Back to Chart of Accounts</a>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Account Details</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" class="needs-validation" novalidate>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="number" class="form-label">Account Number</label>
+                            <input type="number" class="form-control" id="number" name="number" value="{{ account.numero }}" readonly>
+                            <div class="form-text">Account number cannot be changed.</div>
+                        </div>
+                        <div class="col-md-8">
+                            <label for="name" class="form-label">Account Name*</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ account.nimi }}" required>
+                            <div class="invalid-feedback">
+                                Please provide an account name.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="type" class="form-label">Account Type*</label>
+                            <select class="form-select" id="type" name="type" required>
+                                {% for code, name in account_types.items() %}
+                                    <option value="{{ code }}" {% if account.tyyppi == code %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select an account type.
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="vat_percent" class="form-label">VAT %</label>
+                            <input type="number" step="0.1" min="0" max="100" class="form-control" id="vat_percent" name="vat_percent" value="{{ account.alvprosentti }}">
+                            <div class="form-text">VAT percentage for this account.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="vat_code" class="form-label">VAT Code</label>
+                            <select class="form-select" id="vat_code" name="vat_code">
+                                <option value="">-- No VAT Code --</option>
+                                {% for code, name in vat_codes.items() %}
+                                    <option value="{{ code }}" {% if account.alvkoodi == code %}selected{% endif %}>{{ code }} - {{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">VAT handling for this account.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('asetukset.chart_of_accounts', filename=filename) }}" class="btn btn-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

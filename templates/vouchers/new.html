@@ -1,0 +1,422 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>New Voucher (Uusi tosite)</h1>
+        <p class="lead">Create a new accounting voucher with transactions</p>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
+            <a href="{{ url_for('tosite.list_vouchers', filename=filename) }}" class="btn btn-secondary me-md-2">Back to Vouchers</a>
+        </div>
+        
+        <form method="post" class="needs-validation" id="voucherForm" novalidate enctype="multipart/form-data">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Voucher Details (Tositteen tiedot)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="tyyppi" class="form-label">Voucher Type (Tositetyyppi)*</label>
+                            <select class="form-select" id="tyyppi" name="tyyppi" required>
+                                {% for code, name in voucher_types.items() %}
+                                    <option value="{{ code }}">{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select voucher type.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="pvm" class="form-label">Date (Päivämäärä)*</label>
+                            <input type="date" class="form-control" id="pvm" name="pvm" value="{{ today }}" required>
+                            <div class="invalid-feedback">
+                                Please provide a date.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label for="otsikko" class="form-label">Title (Otsikko)*</label>
+                            <input type="text" class="form-control" id="otsikko" name="otsikko" required>
+                            <div class="invalid-feedback">
+                                Please provide a title.
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="tila" class="form-label">Status (Tila)</label>
+                            <select class="form-select" id="tila" name="tila">
+                                {% for code, name in voucher_statuses.items() %}
+                                    <option value="{{ code }}" {% if code == 0 %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">
+                                New vouchers are created as drafts and must be confirmed after balancing the transactions.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="kumppani" class="form-label">Partner (Kumppani)</label>
+                            <select class="form-select" id="kumppani" name="kumppani">
+                                <option value="">-- Select Partner --</option>
+                                {% for partner in partners %}
+                                    <option value="{{ partner.id }}">{{ partner.nimi }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Electronic Voucher (Sähköinen tosite)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="attachment" class="form-label">Attachments (PDF, JPG, CSV)</label>
+                            <input type="file" class="form-control" id="attachment" name="attachment" multiple accept=".pdf,.jpg,.jpeg,.png,.csv,.txt,.xls,.xlsx,.doc,.docx">
+                            <div class="form-text">
+                                Upload receipts, invoices or other documents related to this voucher. Supported formats: PDF, JPG, PNG, CSV, and office documents. Maximum size: 10MB per file.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4" id="invoice-details" style="display: none;">
+                <div class="card-header">
+                    <h5>Invoice Details (Laskun tiedot)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="laskupvm" class="form-label">Invoice Date (Laskun päivämäärä)</label>
+                            <input type="date" class="form-control" id="laskupvm" name="laskupvm">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="erapvm" class="form-label">Due Date (Eräpäivä)</label>
+                            <input type="date" class="form-control" id="erapvm" name="erapvm">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="viite" class="form-label">Reference Number (Viitenumero)</label>
+                            <input type="text" class="form-control" id="viite" name="viite">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>Transactions (Viennit)</h5>
+                    <div>
+                        <span id="balance-indicator" class="badge bg-warning me-2">Not balanced</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="add-row-btn">
+                            <i class="bi bi-plus-circle"></i> Add Row
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm" id="transactions-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 20%;">Account (Tili)*</th>
+                                    <th style="width: 25%;">Description (Selite)</th>
+                                    <th style="width: 15%;">Allocation (Kohdennus)</th>
+                                    <th style="width: 15%;">VAT (ALV)</th>
+                                    <th style="width: 10%;">Debit (Debet)</th>
+                                    <th style="width: 10%;">Credit (Kredit)</th>
+                                    <th style="width: 5%;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactions-body">
+                                <!-- Transaction rows will be added here -->
+                                <tr id="row-0" class="transaction-row">
+                                    <td>
+                                        <select class="form-select form-select-sm account-select" id="tili_0" name="tili_0" required>
+                                            <option value="">-- Select Account --</option>
+                                            {% for account in accounts %}
+                                                <option value="{{ account.numero }}">{{ account.numero }} - {{ account.nimi }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" id="selite_0" name="selite_0">
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm" id="kohdennus_0" name="kohdennus_0">
+                                            <option value="">-- None --</option>
+                                            {% for allocation in allocations %}
+                                                <option value="{{ allocation.id }}">{{ allocation.nimi }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" step="0.1" min="0" max="100" class="form-control form-control-sm vat-percent" id="alv_percent_0" name="alv_percent_0" placeholder="%">
+                                            <select class="form-select form-select-sm vat-code" id="alv_code_0" name="alv_code_0" style="width: 60%;">
+                                                <option value="">-- VAT Code --</option>
+                                                {% for code, name in vat_codes.items() %}
+                                                    <option value="{{ code }}">{{ code }} - {{ name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="number" step="0.01" min="0" class="form-control form-control-sm debit-input" id="debit_0" name="debit_0" placeholder="0.00" value="0.00">
+                                    </td>
+                                    <td>
+                                        <input type="number" step="0.01" min="0" class="form-control form-control-sm credit-input" id="credit_0" name="credit_0" placeholder="0.00" value="0.00">
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-row-btn">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="fw-bold">
+                                    <td colspan="4" class="text-end">Total:</td>
+                                    <td><span id="debit-total">0.00</span></td>
+                                    <td><span id="credit-total">0.00</span></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Additional Information (Lisätiedot)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="comments" class="form-label">Comments (Kommentit)</label>
+                            <textarea class="form-control" id="comments" name="comments" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{{ url_for('tosite.list_vouchers', filename=filename) }}" class="btn btn-secondary me-md-2">Cancel</a>
+                <button type="submit" class="btn btn-primary">Create Voucher</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Show/hide invoice details based on voucher type
+        const voucherTypeSelect = document.getElementById('tyyppi');
+        const invoiceDetails = document.getElementById('invoice-details');
+        
+        function toggleInvoiceDetails() {
+            // Show invoice details for invoice voucher types (1, 2)
+            const showInvoiceDetails = ['1', '2'].includes(voucherTypeSelect.value);
+            invoiceDetails.style.display = showInvoiceDetails ? 'block' : 'none';
+        }
+        
+        voucherTypeSelect.addEventListener('change', toggleInvoiceDetails);
+        toggleInvoiceDetails(); // Initial check
+        
+        // Transaction rows management
+        let rowCounter = 1;
+        const addRowBtn = document.getElementById('add-row-btn');
+        const transactionsBody = document.getElementById('transactions-body');
+        
+        // Function to add a new transaction row
+        addRowBtn.addEventListener('click', function() {
+            const newRow = document.querySelector('#row-0').cloneNode(true);
+            newRow.id = `row-${rowCounter}`;
+            
+            // Update input IDs and names
+            const inputs = newRow.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                const currentName = input.getAttribute('name');
+                const currentId = input.getAttribute('id');
+                if (currentName && currentId) {
+                    const newName = currentName.replace('_0', `_${rowCounter}`);
+                    const newId = currentId.replace('_0', `_${rowCounter}`);
+                    input.setAttribute('name', newName);
+                    input.setAttribute('id', newId);
+                    input.value = ''; // Clear values
+                    
+                    // Set default values for amount fields
+                    if (newName.includes('debit_') || newName.includes('credit_')) {
+                        input.value = '0.00';
+                    }
+                }
+            });
+            
+            // Add the new row to the table
+            transactionsBody.appendChild(newRow);
+            rowCounter++;
+            
+            // Setup event handlers for the new row
+            setupRowEventHandlers(newRow);
+            updateTotalsAndBalance();
+        });
+        
+        // Function to setup event handlers for a row
+        function setupRowEventHandlers(row) {
+            // Remove row button
+            const removeBtn = row.querySelector('.remove-row-btn');
+            removeBtn.addEventListener('click', function() {
+                if (document.querySelectorAll('.transaction-row').length > 1) {
+                    row.remove();
+                    updateTotalsAndBalance();
+                } else {
+                    alert('Cannot remove the last row.');
+                }
+            });
+            
+            // Amount fields
+            const debitInput = row.querySelector('.debit-input');
+            const creditInput = row.querySelector('.credit-input');
+            
+            debitInput.addEventListener('input', function() {
+                if (parseFloat(this.value) > 0) {
+                    creditInput.value = '0.00';
+                }
+                updateTotalsAndBalance();
+            });
+            
+            creditInput.addEventListener('input', function() {
+                if (parseFloat(this.value) > 0) {
+                    debitInput.value = '0.00';
+                }
+                updateTotalsAndBalance();
+            });
+            
+            // VAT code handling
+            const vatCodeSelect = row.querySelector('.vat-code');
+            vatCodeSelect.addEventListener('change', function() {
+                if (this.value) {
+                    suggestVatAccount(this.value, row);
+                }
+            });
+        }
+        
+        // Function to update totals and balance
+        function updateTotalsAndBalance() {
+            let totalDebit = 0;
+            let totalCredit = 0;
+            
+            // Sum up all debit and credit amounts
+            document.querySelectorAll('.debit-input').forEach(input => {
+                const value = parseFloat(input.value) || 0;
+                totalDebit += value;
+            });
+            
+            document.querySelectorAll('.credit-input').forEach(input => {
+                const value = parseFloat(input.value) || 0;
+                totalCredit += value;
+            });
+            
+            // Update total displays
+            document.getElementById('debit-total').textContent = totalDebit.toFixed(2);
+            document.getElementById('credit-total').textContent = totalCredit.toFixed(2);
+            
+            // Update balance indicator
+            const balanceIndicator = document.getElementById('balance-indicator');
+            const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
+            
+            if (isBalanced) {
+                balanceIndicator.textContent = 'Balanced';
+                balanceIndicator.className = 'badge bg-success me-2';
+            } else {
+                balanceIndicator.textContent = 'Not balanced';
+                balanceIndicator.className = 'badge bg-warning me-2';
+            }
+        }
+        
+        // Function to suggest VAT account
+        function suggestVatAccount(vatCode, row) {
+            // Only suggest for standard VAT codes
+            if (!['1', '2', '3', '5', '6', '7', '8', '9'].includes(vatCode)) {
+                return;
+            }
+            
+            fetch(`/db/{{ filename }}/vat-account-suggestion/${vatCode}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Check if current row has transaction data
+                    const debitValue = parseFloat(row.querySelector('.debit-input').value) || 0;
+                    const creditValue = parseFloat(row.querySelector('.credit-input').value) || 0;
+                    
+                    if (debitValue > 0 || creditValue > 0) {
+                        // If current row has a value, add a new row for VAT account
+                        addRowBtn.click();
+                        const newRow = document.querySelector('#transactions-body').lastElementChild;
+                        const accountSelect = newRow.querySelector('.account-select');
+                        
+                        // Select the VAT account
+                        for (let i = 0; i < accountSelect.options.length; i++) {
+                            if (accountSelect.options[i].value == data.account) {
+                                accountSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                        
+                        // Set VAT description
+                        const vatPercentInput = row.querySelector('.vat-percent');
+                        const vatPercent = vatPercentInput.value || '0';
+                        const description = `VAT ${vatPercent}%`;
+                        newRow.querySelector('input[id^="selite_"]').value = description;
+                        
+                        // Set VAT amount
+                        const amount = debitValue > 0 ? debitValue : creditValue;
+                        const vatAmount = (amount * parseFloat(vatPercent) / 100).toFixed(2);
+                        
+                        if (debitValue > 0) {
+                            newRow.querySelector('.credit-input').value = vatAmount;
+                        } else {
+                            newRow.querySelector('.debit-input').value = vatAmount;
+                        }
+                        
+                        updateTotalsAndBalance();
+                    }
+                })
+                .catch(error => console.error('Error suggesting VAT account:', error));
+        }
+        
+        // Form validation
+        const form = document.getElementById('voucherForm');
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                // Check if debits and credits are balanced
+                const totalDebit = parseFloat(document.getElementById('debit-total').textContent);
+                const totalCredit = parseFloat(document.getElementById('credit-total').textContent);
+                
+                if (Math.abs(totalDebit - totalCredit) >= 0.01) {
+                    event.preventDefault();
+                    alert('Debits and credits must be balanced before creating the voucher.');
+                }
+            }
+            
+            form.classList.add('was-validated');
+        });
+        
+        // Setup event handlers for initial row
+        setupRowEventHandlers(document.querySelector('#row-0'));
+        updateTotalsAndBalance();
+    });
+</script>
+{% endblock %} 

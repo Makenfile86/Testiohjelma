@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Kirjanpito-ohjelma</h1>
+        <p class="lead">Luo ja hallinnoi asiakkaiden kirjanpitotietokantoja.</p>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
+            <a href="{{ url_for('create_database') }}" class="btn btn-primary">Luo uusi tietokanta</a>
+        </div>
+        
+        <h2>Olemassa olevat tietokannat</h2>
+        {% if databases %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Asiakkaan nimi</th>
+                            <th>Luotu</th>
+                            <th>Koko</th>
+                            <th>Toiminnot</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for db in databases %}
+                            <tr>
+                                <td>{{ db.name }}</td>
+                                <td>{{ db.created }}</td>
+                                <td>{{ db.size }}</td>
+                                <td>
+                                    <a href="{{ url_for('view_database', filename=db.filename) }}" class="btn btn-sm btn-info">Näytä</a>
+                                    <a href="{{ url_for('download_database', filename=db.filename) }}" class="btn btn-sm btn-success">Lataa</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                Tietokantoja ei ole vielä luotu. Klikkaa "Luo uusi tietokanta" aloittaaksesi.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

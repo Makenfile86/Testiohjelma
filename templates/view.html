@@ -1,0 +1,143 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Tietokannan tiedot</h1>
+        <p class="lead">Tietokannan tiedot: {{ filename }}</p>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-start mb-4">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary me-md-2">Takaisin listaan</a>
+            <a href="{{ url_for('download_database', filename=filename) }}" class="btn btn-success me-md-2">Lataa tietokanta</a>
+            <a href="{{ url_for('tosite.list_vouchers', filename=filename) }}" class="btn btn-primary me-md-2">
+                <i class="bi bi-journal-text"></i> Tositteet
+            </a>
+            <a href="{{ url_for('tili.list_balances', filename=filename) }}" class="btn btn-primary me-md-2">
+                <i class="bi bi-cash-stack"></i> Tilien saldot
+            </a>
+            <a href="{{ url_for('asetukset.settings_main', filename=filename) }}" class="btn btn-primary">
+                <i class="bi bi-gear"></i> Asetukset
+            </a>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Asiakkaan tiedot</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th>Nimi</th>
+                                    <td>{{ client_info.get('Nimi', 'N/A') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Y-tunnus</th>
+                                    <td>{{ client_info.get('Ytunnus', 'N/A') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Osoite</th>
+                                    <td>
+                                        {{ client_info.get('Katuosoite', '') }}<br>
+                                        {{ client_info.get('Postinumero', '') }} {{ client_info.get('Kaupunki', '') }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Kotipaikka</th>
+                                    <td>{{ client_info.get('Kotipaikka', 'N/A') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Yritysmuoto</th>
+                                    <td>{{ client_info.get('Yritysmuoto', 'N/A') }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <th>Sähköposti</th>
+                                    <td>{{ client_info.get('Email', 'N/A') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Puhelin</th>
+                                    <td>{{ client_info.get('Puhelin', 'N/A') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Kotisivu</th>
+                                    <td>{{ client_info.get('Kotisivu', 'N/A') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>ALV-velvollinen</th>
+                                    <td>{{ 'Kyllä' if client_info.get('AlvVelvollinen') == 'ON' else 'Ei' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Tilikartan laajuus</th>
+                                    <td>{{ 'Perus' if client_info.get('TilikarttaLaajuus', 'basic') == 'basic' else 'Normaali' if client_info.get('TilikarttaLaajuus') == 'standard' else 'Laaja' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Tietokannan rakenne</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Taulun nimi</th>
+                                <th>Rivien määrä</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for table in tables %}
+                                <tr>
+                                    <td>{{ table.name }}</td>
+                                    <td>{{ table.count }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Järjestelmätiedot</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tbody>
+                        <tr>
+                            <th>Luotu</th>
+                            <td>{{ client_info.get('Luotu', 'N/A') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Versio</th>
+                            <td>{{ client_info.get('KpVersio', 'N/A') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Luotu versiolla</th>
+                            <td>{{ client_info.get('LuotuVersiolla', 'N/A') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Tietokanta ID</th>
+                            <td>{{ client_info.get('UID', 'N/A') }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
